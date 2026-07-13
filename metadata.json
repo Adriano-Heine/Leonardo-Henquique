@@ -1,0 +1,8 @@
+{
+  "name": "Private Broker - Cartão Digital",
+  "description": "Cartão de visitas digital e link na bio de alto padrão para corretores de imóveis de luxo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
