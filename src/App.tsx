@@ -14,7 +14,9 @@ import {
   Instagram, 
   Linkedin, 
   Mail, 
-  Globe 
+  Globe,
+  QrCode,
+  X
 } from "lucide-react";
 
 // Predefined high-conversion shortcuts for WhatsApp
@@ -53,6 +55,7 @@ const SHORTCUTS: QuickAccessShortcut[] = [
 export default function App() {
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("");
+  const [showQrModal, setShowQrModal] = useState<boolean>(false);
 
   // Automatically dismiss toast after 4 seconds
   useEffect(() => {
@@ -156,14 +159,27 @@ export default function App() {
               </span>
             </div>
             
-            <button 
-              id="btn-share"
-              onClick={handleShare}
-              className="p-2 rounded-full bg-satin-medium/80 border border-classic-gold/15 hover:border-classic-gold/60 text-sage-light hover:text-white transition-all cursor-pointer active:scale-95"
-              aria-label="Compartilhar Cartão"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
+            <div className="flex gap-2">
+              <button 
+                id="btn-qrcode"
+                onClick={() => setShowQrModal(true)}
+                className="p-2 rounded-full bg-satin-medium/80 border border-classic-gold/15 hover:border-classic-gold/60 text-sage-light hover:text-white transition-all cursor-pointer active:scale-95"
+                aria-label="Mostrar QR Code"
+                title="Mostrar QR Code"
+              >
+                <QrCode className="w-4 h-4" />
+              </button>
+
+              <button 
+                id="btn-share"
+                onClick={handleShare}
+                className="p-2 rounded-full bg-satin-medium/80 border border-classic-gold/15 hover:border-classic-gold/60 text-sage-light hover:text-white transition-all cursor-pointer active:scale-95"
+                aria-label="Compartilhar Cartão"
+                title="Compartilhar Cartão"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* SECTION 1: CABEÇALHO DO CORRETOR */}
@@ -345,6 +361,81 @@ export default function App() {
               </p>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* QR CODE MODAL POPUP */}
+      <AnimatePresence>
+        {showQrModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop with elegant blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowQrModal(false)}
+              className="absolute inset-0 bg-[#000a14]/85 backdrop-blur-md cursor-pointer"
+            />
+            
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="relative w-full max-w-[360px] bg-satin-medium border border-classic-gold/30 rounded-[2rem] p-6 shadow-[0_24px_48px_rgba(0,0,0,0.8)] overflow-hidden z-10 text-center"
+            >
+              {/* Background Glow */}
+              <div className="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-classic-gold/10 blur-xl pointer-events-none" />
+              <div className="absolute -bottom-12 -right-12 w-24 h-24 rounded-full bg-classic-gold/10 blur-xl pointer-events-none" />
+
+              {/* Close Button */}
+              <button
+                id="btn-close-qrcode"
+                onClick={() => setShowQrModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-full bg-[#001226]/50 border border-classic-gold/10 text-sage-light hover:text-white transition-all cursor-pointer active:scale-90"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex flex-col items-center mt-2">
+                <div className="p-2.5 rounded-full bg-classic-gold/10 text-classic-gold mb-3.5">
+                  <QrCode className="w-6 h-6" />
+                </div>
+
+                <h3 className="font-serif text-xl font-bold text-white mb-1 tracking-wide uppercase">
+                  Compartilhar Cartão
+                </h3>
+                <p className="text-sage-light/70 text-[11px] leading-relaxed mb-6 max-w-[240px] mx-auto">
+                  Aponte a câmera do seu celular para este QR Code para abrir o cartão digital instantaneamente.
+                </p>
+
+                {/* QR Code Container with High-Contrast White Background */}
+                <div className="relative p-4 bg-white rounded-2xl border-4 border-classic-gold shadow-md mb-6 w-[200px] h-[200px] flex items-center justify-center">
+                  <img
+                    id="img-qrcode"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=0c2442&data=${encodeURIComponent(window.location.href)}`}
+                    alt="QR Code de Leonardo Henrique"
+                    className="w-full h-full object-contain"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                {/* Copy Link Helper */}
+                <button
+                  id="btn-copy-modal"
+                  onClick={() => {
+                    copyToClipboard();
+                    setShowQrModal(false);
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-classic-gold/30 hover:border-classic-gold text-white font-sans text-[11px] font-semibold tracking-wider uppercase bg-[#001226]/40 hover:bg-classic-gold/10 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-classic-gold" />
+                  <span>Copiar Link do Cartão</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
