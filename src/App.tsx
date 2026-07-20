@@ -84,25 +84,57 @@ export default function App() {
   // References
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load properties from LocalStorage on mount
+  // Helper to sync properties with the backend server
+  const syncProperties = async (updatedList: any[]) => {
+    setProperties(updatedList);
+    localStorage.setItem("leonardo_properties", JSON.stringify(updatedList));
+    try {
+      await fetch("/api/properties", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(updatedList)
+      });
+    } catch (err) {
+      console.error("Error syncing properties with server:", err);
+    }
+  };
+
+  // Load properties from server API on mount (or fall back to LocalStorage)
   useEffect(() => {
     // Simulate real-time skeleton loading for professional flow
     const timer = setTimeout(() => {
-      const stored = localStorage.getItem("leonardo_properties");
-      if (stored) {
+      const fetchFromBackend = async () => {
         try {
-          const parsed = JSON.parse(stored);
-          const filtered = parsed.filter((p: any) => p.id !== "prop-2");
-          setProperties(filtered);
-          localStorage.setItem("leonardo_properties", JSON.stringify(filtered));
-        } catch (e) {
-          setProperties(DEFAULT_PROPERTIES);
+          const res = await fetch("/api/properties");
+          if (res.ok) {
+            const data = await res.json();
+            setProperties(data);
+            localStorage.setItem("leonardo_properties", JSON.stringify(data));
+          } else {
+            throw new Error("Server error");
+          }
+        } catch (error) {
+          const stored = localStorage.getItem("leonardo_properties");
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              const filtered = parsed.filter((p: any) => p.id !== "prop-2");
+              setProperties(filtered);
+              localStorage.setItem("leonardo_properties", JSON.stringify(filtered));
+            } catch (e) {
+              setProperties(DEFAULT_PROPERTIES);
+            }
+          } else {
+            setProperties(DEFAULT_PROPERTIES);
+            localStorage.setItem("leonardo_properties", JSON.stringify(DEFAULT_PROPERTIES));
+          }
+        } finally {
+          setLoading(false);
         }
-      } else {
-        setProperties(DEFAULT_PROPERTIES);
-        localStorage.setItem("leonardo_properties", JSON.stringify(DEFAULT_PROPERTIES));
-      }
-      setLoading(false);
+      };
+      fetchFromBackend();
     }, 1200);
 
     return () => clearTimeout(timer);
@@ -227,8 +259,7 @@ export default function App() {
     };
 
     const updated = [newProperty, ...properties];
-    setProperties(updated);
-    localStorage.setItem("leonardo_properties", JSON.stringify(updated));
+    syncProperties(updated);
 
     // Clear form inputs
     setFormTitle("");
@@ -250,8 +281,7 @@ export default function App() {
   const confirmDeleteProperty = () => {
     if (!propertyIdToDelete) return;
     const updated = properties.filter((p) => p.id !== propertyIdToDelete);
-    setProperties(updated);
-    localStorage.setItem("leonardo_properties", JSON.stringify(updated));
+    syncProperties(updated);
     setPropertyIdToDelete(null);
     setToastMessage("Imóvel excluído.");
     setShowToast(true);
