@@ -942,6 +942,21 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* RODAPÉ DO CARTÃO / FOOTER */}
+        <footer className="w-full text-center mt-3 mb-2 flex flex-col items-center justify-center gap-0.5 text-gray-400 font-sans text-[10px] tracking-wide select-none">
+          <p className="opacity-75">
+            Projeto desenvolvido por <span className="font-semibold text-white">Adriano Jorge</span>
+          </p>
+          <a
+            href="https://instagram.com/solucoes_premium"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#F58220] hover:text-[#ff9c43] font-semibold transition-colors duration-200"
+          >
+            @solucoes_premium
+          </a>
+        </footer>
+
       </div>
 
       {/* SISTEMA DE NOTIFICAÇÃO TOAST */}
