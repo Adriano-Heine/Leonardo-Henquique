@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, FormEvent, ChangeEvent, MouseEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "./lib/firebase";
 import { 
   Crown, 
   Phone, 
@@ -84,57 +86,43 @@ export default function App() {
   // References
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper to sync properties with the backend server
-  const syncProperties = async (updatedList: any[]) => {
-    setProperties(updatedList);
-    localStorage.setItem("leonardo_properties", JSON.stringify(updatedList));
-    try {
-      await fetch("/api/properties", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(updatedList)
-      });
-    } catch (err) {
-      console.error("Error syncing properties with server:", err);
-    }
-  };
-
-  // Load properties from server API on mount (or fall back to LocalStorage)
+  // Load properties from Firestore with onSnapshot for real-time, cross-device sync
   useEffect(() => {
-    // Simulate real-time skeleton loading for professional flow
+    const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
+    
+    // Initial loading state timer for premium UX feel
     const timer = setTimeout(() => {
-      const fetchFromBackend = async () => {
-        try {
-          const res = await fetch("/api/properties");
-          if (res.ok) {
-            const data = await res.json();
-            setProperties(data);
-            localStorage.setItem("leonardo_properties", JSON.stringify(data));
-          } else {
-            throw new Error("Server error");
-          }
-        } catch (error) {
-          const stored = localStorage.getItem("leonardo_properties");
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              const filtered = parsed.filter((p: any) => p.id !== "prop-2");
-              setProperties(filtered);
-              localStorage.setItem("leonardo_properties", JSON.stringify(filtered));
-            } catch (e) {
-              setProperties(DEFAULT_PROPERTIES);
-            }
-          } else {
-            setProperties(DEFAULT_PROPERTIES);
-            localStorage.setItem("leonardo_properties", JSON.stringify(DEFAULT_PROPERTIES));
-          }
-        } finally {
-          setLoading(false);
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+          // Seed DEFAULT_PROPERTIES into Firestore if collection is empty
+          DEFAULT_PROPERTIES.forEach(async (prop, index) => {
+            await setDoc(doc(db, "properties", prop.id), {
+              ...prop,
+              createdAt: new Date(Date.now() - index * 1000).toISOString()
+            });
+          });
+        } else {
+          const list: any[] = [];
+          snapshot.forEach((doc) => {
+            list.push(doc.data());
+          });
+          setProperties(list);
+          localStorage.setItem("leonardo_properties", JSON.stringify(list));
         }
-      };
-      fetchFromBackend();
+        setLoading(false);
+      }, (error) => {
+        console.error("Error with Firestore snapshot:", error);
+        // Fallback to local storage
+        const stored = localStorage.getItem("leonardo_properties");
+        if (stored) {
+          setProperties(JSON.parse(stored));
+        } else {
+          setProperties(DEFAULT_PROPERTIES);
+        }
+        setLoading(false);
+      });
+
+      return unsubscribe;
     }, 1200);
 
     return () => clearTimeout(timer);
@@ -233,7 +221,7 @@ export default function App() {
     });
   };
 
-  // Add new property to LocalStorage
+  // Add new property to Firestore
   const handleAddProperty = (e: FormEvent) => {
     e.preventDefault();
     if (!formTitle || !formPrice || !formLocation || !formDescription) {
@@ -255,21 +243,27 @@ export default function App() {
       type: formType,
       location: formLocation,
       description: formDescription,
-      photos: formPhotos
+      photos: formPhotos,
+      createdAt: new Date().toISOString()
     };
 
-    const updated = [newProperty, ...properties];
-    syncProperties(updated);
-
-    // Clear form inputs
-    setFormTitle("");
-    setFormPrice("");
-    setFormLocation("");
-    setFormDescription("");
-    setFormPhotos([]);
-    
-    setToastMessage("Imóvel cadastrado com sucesso no catálogo!");
-    setShowToast(true);
+    setDoc(doc(db, "properties", newProperty.id), newProperty)
+      .then(() => {
+        // Clear form inputs
+        setFormTitle("");
+        setFormPrice("");
+        setFormLocation("");
+        setFormDescription("");
+        setFormPhotos([]);
+        
+        setToastMessage("Imóvel cadastrado com sucesso no catálogo!");
+        setShowToast(true);
+      })
+      .catch((error) => {
+        console.error("Error adding property to Firestore:", error);
+        setToastMessage("Erro ao salvar imóvel no Firestore.");
+        setShowToast(true);
+      });
   };
 
   // Delete property from database (shows custom modal)
@@ -280,11 +274,17 @@ export default function App() {
   // Perform actual deletion when custom modal is confirmed
   const confirmDeleteProperty = () => {
     if (!propertyIdToDelete) return;
-    const updated = properties.filter((p) => p.id !== propertyIdToDelete);
-    syncProperties(updated);
-    setPropertyIdToDelete(null);
-    setToastMessage("Imóvel excluído.");
-    setShowToast(true);
+    deleteDoc(doc(db, "properties", propertyIdToDelete))
+      .then(() => {
+        setPropertyIdToDelete(null);
+        setToastMessage("Imóvel excluído.");
+        setShowToast(true);
+      })
+      .catch((error) => {
+        console.error("Error deleting property from Firestore:", error);
+        setToastMessage("Erro ao excluir imóvel no Firestore.");
+        setShowToast(true);
+      });
   };
 
   // Carousel navigation logic (Prev/Next photo)

@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Property": {
+      "title": "Property",
+      "description": "A luxury real estate property listing on Leonardo Henrique's card.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "price": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "photos": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "title", "price", "type", "location", "description", "photos"]
+    }
+  },
+  "firestore": {
+    "/properties/{propertyId}": {
+      "schema": "Property",
+      "description": "Collection of all real estate properties."
+    }
+  }
+}
