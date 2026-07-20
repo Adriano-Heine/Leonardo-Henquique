@@ -28,7 +28,8 @@ import {
   Eye,
   RefreshCw,
   Image as ImageIcon,
-  MessageSquare
+  MessageSquare,
+  MapPin
 } from "lucide-react";
 
 // ============================================================================
@@ -39,7 +40,7 @@ const DEFAULT_PROPERTIES = [
     id: "prop-1",
     title: "Mansão Haras Residence",
     price: "R$ 4.500.000",
-    type: "mansões",
+    type: "casa",
     location: "Vitória da Conquista - BA",
     description: "Residência cinematográfica com 4 suítes master, pé-direito duplo de 7 metros, área gourmet integrada com piscina aquecida de borda infinita e automação completa.",
     photos: [
@@ -55,10 +56,11 @@ export default function App() {
   // Global & General States
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>("todos");
+  const [selectedCategory, setSelectedCategory] = useState<string>("casa");
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("");
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
+  const [propertyIdToDelete, setPropertyIdToDelete] = useState<string | null>(null);
 
   // Carousel Navigation States (Tracks active photo index for each property)
   const [carouselIndices, setCarouselIndices] = useState<{ [key: string]: number }>({});
@@ -73,7 +75,7 @@ export default function App() {
   // Property Form States (For adding new listings in the Admin Panel)
   const [formTitle, setFormTitle] = useState<string>("");
   const [formPrice, setFormPrice] = useState<string>("");
-  const [formType, setFormType] = useState<string>("mansões");
+  const [formType, setFormType] = useState<string>("casa");
   const [formLocation, setFormLocation] = useState<string>("");
   const [formDescription, setFormDescription] = useState<string>("");
   const [formPhotos, setFormPhotos] = useState<string[]>([]);
@@ -239,12 +241,18 @@ export default function App() {
     setShowToast(true);
   };
 
-  // Delete property from database
+  // Delete property from database (shows custom modal)
   const handleDeleteProperty = (id: string) => {
-    if (!confirm("Confirmar a exclusão permanente deste imóvel do seu cartão?")) return;
-    const updated = properties.filter((p) => p.id !== id);
+    setPropertyIdToDelete(id);
+  };
+
+  // Perform actual deletion when custom modal is confirmed
+  const confirmDeleteProperty = () => {
+    if (!propertyIdToDelete) return;
+    const updated = properties.filter((p) => p.id !== propertyIdToDelete);
     setProperties(updated);
     localStorage.setItem("leonardo_properties", JSON.stringify(updated));
+    setPropertyIdToDelete(null);
     setToastMessage("Imóvel excluído.");
     setShowToast(true);
   };
@@ -270,7 +278,7 @@ export default function App() {
 
   // Direct contact action
   const triggerWhatsApp = (message: string) => {
-    const url = `https://wa.me/5577999999999?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/5577999939223?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
 
@@ -287,13 +295,15 @@ export default function App() {
       const vcard = [
         "BEGIN:VCARD",
         "VERSION:3.0",
-        "N:Henrique;Leonardo;;Negócios Imobiliários;",
-        "FN:Leonardo Henrique",
-        "ORG:Leonardo Henrique Negócios Imobiliários",
-        "TEL;TYPE=CELL;TYPE=PREF;TYPE=VOICE:+5577999999999",
-        "EMAIL;TYPE=PREF;TYPE=INTERNET:contato@leonardohenrique.com.br",
-        "URL;TYPE=WORK:https://leonardohenrique.com.br",
-        "NOTE:Propriedades de alto padrão em Vitória da Conquista. Atendimento personalizado.",
+        "N:Henrique;Leonardo;;Contec Imobiliária;",
+        "FN:Leonardo Henrique - Contec",
+        "ORG:Contec Imobiliária",
+        "TEL;TYPE=CELL;TYPE=PREF;TYPE=VOICE:+5577999939223",
+        "TEL;TYPE=CELL;TYPE=VOICE:+5577999996584",
+        "TEL;TYPE=WORK;TYPE=VOICE:+557740095815",
+        "EMAIL;TYPE=PREF;TYPE=INTERNET:contecimobiliaria@gmail.com",
+        "URL;TYPE=WORK:https://www.contecimobiliaria.com.br",
+        "NOTE:Contec Imobiliária - Rua Leonídio de Oliveira, 620, Recreio - Vitória da Conquista - BA. Atendimento personalizado.",
         "END:VCARD"
       ].join("\r\n");
 
@@ -301,7 +311,7 @@ export default function App() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "Leonardo_Henrique.vcf");
+      link.setAttribute("download", "Leonardo_Henrique_Contec.vcf");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -392,7 +402,7 @@ export default function App() {
                 </h1>
                 
                 <p className="text-classic-gold text-[10px] font-semibold tracking-[0.2em] mb-4 uppercase">
-                  NEGÓCIOS IMOBILIÁRIOS
+                  CONTEC IMOBILIÁRIA
                 </p>
 
                 <p className="text-gray-300 text-[12px] leading-relaxed italic px-4 font-light">
@@ -403,7 +413,7 @@ export default function App() {
               {/* INSTANT CONTACT CALL-TO-ACTION */}
               <div className="mb-8">
                 <button 
-                  onClick={() => triggerWhatsApp("Olá Leonardo, vim através do seu Cartão Digital e gostaria de falar sobre a curadoria e administração de imóveis.")}
+                  onClick={() => triggerWhatsApp("Olá Leonardo, vim através do seu Cartão Digital e gostaria de falar sobre os imóveis da Contec Imobiliária.")}
                   className="pulse-gold w-full bg-classic-gold text-white rounded-2xl py-4 flex flex-col items-center justify-center transition-all hover:brightness-110 cursor-pointer active:scale-98 shadow-lg shadow-classic-gold/20"
                 >
                   <div className="flex items-center gap-2">
@@ -430,10 +440,9 @@ export default function App() {
                 {/* Filtro de Categoria */}
                 <div className="flex gap-1.5 overflow-x-auto pb-2.5 mb-4 scrollbar-thin scrollbar-track-transparent">
                   {[
-                    { id: "todos", label: "Todos" },
-                    { id: "mansões", label: "Mansões" },
-                    { id: "coberturas", label: "Coberturas" },
-                    { id: "lançamentos", label: "Lançamentos" }
+                    { id: "casa", label: "Casa" },
+                    { id: "apartamento", label: "Apartamentos" },
+                    { id: "terrenos", label: "Terrenos" }
                   ].map((cat) => (
                     <button
                       key={cat.id}
@@ -550,18 +559,9 @@ export default function App() {
                                 {property.location}
                               </p>
 
-                              <p className="text-[11px] text-gray-300 leading-relaxed font-light mb-4">
+                              <p className="text-[11px] text-gray-300 leading-relaxed font-light">
                                 {property.description}
                               </p>
-
-                              {/* Botão de contato direcionado */}
-                              <button
-                                onClick={() => triggerWhatsApp(`Olá Leonardo, gostaria de receber mais informações e o material completo do imóvel: ${property.title}`)}
-                                className="w-full py-2.5 rounded-xl border border-classic-gold/20 hover:border-classic-gold/60 text-classic-gold hover:bg-classic-gold/10 font-serif text-[11px] font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer"
-                              >
-                                <span>SOLICITAR MATERIAL COMPLETO</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
                             </div>
                           </motion.div>
                         );
@@ -586,7 +586,7 @@ export default function App() {
                       <div className="space-y-3">
                         {/* WhatsApp Button */}
                         <a
-                          href="https://wa.me/5577999999999?text=Olá%20Leonardo,%20gostaria%20de%20conversar%20sobre%20imóveis%20de%20alto%20padrão."
+                          href="https://wa.me/5577999939223?text=Olá%20Leonardo,%20gostaria%20de%20conversar%20sobre%20imóveis%20na%20Contec%20Imobiliária."
                           target="_blank"
                           rel="noreferrer"
                           className="w-full py-3 px-4 rounded-xl bg-emerald-600/10 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-600/20 text-emerald-400 font-sans text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-between group cursor-pointer active:scale-98"
@@ -596,8 +596,8 @@ export default function App() {
                               <MessageSquare className="w-4 h-4 fill-emerald-400" />
                             </span>
                             <span className="text-left">
-                              <span className="block text-[11px] font-bold text-emerald-300">WhatsApp</span>
-                              <span className="block text-[9px] text-gray-400 font-mono normal-case tracking-normal mt-0.5">(77) 99999-9999</span>
+                              <span className="block text-[11px] font-bold text-emerald-300">WhatsApp principal</span>
+                              <span className="block text-[9px] text-gray-400 font-mono normal-case tracking-normal mt-0.5">(77) 99993-9223</span>
                             </span>
                           </div>
                           <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
@@ -605,7 +605,7 @@ export default function App() {
 
                         {/* Celular Button */}
                         <a
-                          href="tel:+5577999999999"
+                          href="tel:+5577999996584"
                           className="w-full py-3 px-4 rounded-xl bg-classic-gold/10 border border-classic-gold/30 hover:border-classic-gold hover:bg-classic-gold/20 text-classic-gold font-sans text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-between group cursor-pointer active:scale-98"
                         >
                           <div className="flex items-center gap-3">
@@ -614,7 +614,7 @@ export default function App() {
                             </span>
                             <span className="text-left">
                               <span className="block text-[11px] font-bold text-amber-200">Telefone Celular</span>
-                              <span className="block text-[9px] text-gray-400 font-mono normal-case tracking-normal mt-0.5">(77) 99999-9999</span>
+                              <span className="block text-[9px] text-gray-400 font-mono normal-case tracking-normal mt-0.5">(77) 99999-6584</span>
                             </span>
                           </div>
                           <ArrowRight className="w-4 h-4 text-classic-gold group-hover:translate-x-1 transition-transform" />
@@ -622,7 +622,7 @@ export default function App() {
 
                         {/* Telefone Fixo Button */}
                         <a
-                          href="tel:+557734210000"
+                          href="tel:+557740095815"
                           className="w-full py-3 px-4 rounded-xl bg-[#0c2442]/80 border border-classic-gold/15 hover:border-classic-gold hover:bg-classic-gold/5 text-gray-300 font-sans text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-between group cursor-pointer active:scale-98"
                         >
                           <div className="flex items-center gap-3">
@@ -631,7 +631,7 @@ export default function App() {
                             </span>
                             <span className="text-left">
                               <span className="block text-[11px] font-bold text-gray-200">Telefone Fixo</span>
-                              <span className="block text-[9px] text-gray-400 font-mono normal-case tracking-normal mt-0.5">(77) 3421-0000</span>
+                              <span className="block text-[9px] text-gray-400 font-mono normal-case tracking-normal mt-0.5">(77) 4009-5815</span>
                             </span>
                           </div>
                           <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
@@ -665,10 +665,10 @@ export default function App() {
               <div className="mb-6">
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { icon: Instagram, label: "Instagram", href: "https://instagram.com" },
-                    { icon: Linkedin, label: "LinkedIn", href: "https://linkedin.com" },
-                    { icon: Mail, label: "E-mail", href: "mailto:contato@leonardohenrique.com.br" },
-                    { icon: Globe, label: "Website", href: "https://leonardohenrique.com.br" }
+                    { icon: Instagram, label: "Instagram", href: "https://instagram.com/contecimobiliaria" },
+                    { icon: MapPin, label: "Localização", href: "https://maps.google.com/?q=Rua%20Leonidio%20de%20Oliveira,%20620,%20Recreio,%20Vitoria%20da%20Conquista%20-%20BA" },
+                    { icon: Mail, label: "E-mail", href: "mailto:contecimobiliaria@gmail.com" },
+                    { icon: Globe, label: "Website", href: "https://www.contecimobiliaria.com.br" }
                   ].map((social, idx) => {
                     const Icon = social.icon;
                     return (
@@ -687,16 +687,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* SECRET GATEWAY FOOTER TRIGGER */}
-              <div className="text-center pb-4">
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="text-[9px] font-mono tracking-widest text-gray-500/30 hover:text-classic-gold transition-colors flex items-center justify-center gap-1 mx-auto cursor-pointer"
-                >
-                  <Lock className="w-2.5 h-2.5" />
-                  <span>PAINEL ADMINISTRATIVO EXCLUSIVO</span>
-                </button>
-              </div>
+              {/* Spacing padding at bottom since footer link is removed */}
+              <div className="pb-6" />
             </motion.div>
           ) : (
             /* PRIVATE BROKER DASHBOARD / MANAGER PANEL */
@@ -775,9 +767,9 @@ export default function App() {
                         onChange={(e) => setFormType(e.target.value)}
                         className="w-full p-2.5 bg-[#001226] border border-classic-gold/15 focus:border-classic-gold focus:outline-none rounded-xl text-white text-xs cursor-pointer"
                       >
-                        <option value="mansões">Mansões</option>
-                        <option value="coberturas">Coberturas</option>
-                        <option value="lançamentos">Lançamentos</option>
+                        <option value="casa">Casa</option>
+                        <option value="apartamento">Apartamentos</option>
+                        <option value="terrenos">Terrenos</option>
                       </select>
                     </div>
                   </div>
@@ -1085,6 +1077,66 @@ export default function App() {
                 <p className="text-[9px] text-gray-500 mt-4">
                   Dica de acesso padrão: <code className="text-classic-gold">1234</code>
                 </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE IMÓVEL */}
+      <AnimatePresence>
+        {propertyIdToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPropertyIdToDelete(null)}
+              className="absolute inset-0 bg-[#000a14]/85 backdrop-blur-md cursor-pointer"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="relative w-full max-w-[340px] bg-[#0c2442] border border-red-500/30 rounded-[2rem] p-6 shadow-[0_24px_48px_rgba(0,0,0,0.8)] overflow-hidden z-10 text-center"
+            >
+              <div className="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-red-500/10 blur-xl pointer-events-none" />
+
+              <button
+                onClick={() => setPropertyIdToDelete(null)}
+                className="absolute top-4 right-4 p-1.5 rounded-full bg-[#001226]/50 border border-classic-gold/10 text-gray-300 hover:text-white transition-all cursor-pointer active:scale-90"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex flex-col items-center mt-2">
+                <div className="p-2.5 rounded-full bg-red-500/10 text-red-400 mb-3.5">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+
+                <h3 className="font-serif text-base font-bold text-white mb-1 tracking-wide uppercase">
+                  Excluir Imóvel?
+                </h3>
+                <p className="text-gray-300 text-[11px] leading-relaxed mb-6 max-w-[220px] mx-auto">
+                  Deseja mesmo excluir permanentemente este imóvel do seu catálogo? Esta ação não poderá ser desfeita.
+                </p>
+
+                <div className="flex gap-3 w-full">
+                  <button
+                    onClick={() => setPropertyIdToDelete(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-classic-gold/15 hover:border-classic-gold/40 text-gray-300 font-sans text-[11px] font-bold tracking-widest uppercase transition-all duration-300 cursor-pointer hover:bg-white/5 active:scale-95"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmDeleteProperty}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-serif text-[11px] font-bold tracking-widest uppercase transition-all duration-300 cursor-pointer active:scale-95"
+                  >
+                    Excluir
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
